@@ -1,5 +1,6 @@
 const express  = require('express');
 const bcrypt   = require('bcryptjs');
+const fetch = require('node-fetch');
 const { pool } = require('../db/db');
 const { generateToken, verifyToken } = require('../middleware/jwtUtils');
 
@@ -10,44 +11,63 @@ const router = express.Router();
 const DUMMY_BCRYPT_HASH =
   '$2b$10$CwTycUXWue0Thq9StjUM0uJ8y0R6VQwWi4KFOeFHrgb3R04QLbL7a';
 
+// ─────────────────────────────────────────────
+// POST /api/auth/register
+// สมัครสมาชิกใหม่
+// ─────────────────────────────────────────────
+router.post('/register', async (req, res) => {
 
-// ─────────────────────────────────────────────
-// Helper: ส่ง log ไปยัง Log Service
-// ─────────────────────────────────────────────
-async function logEvent({
-  service = 'auth-service',
-  level,
-  event,
-  userId,
-  ip,
-  method,
-  path,
-  statusCode,
-  message,
-  meta
-}) {
-  try {
-    await fetch('http://log-service:3003/api/logs/internal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        service,
-        level,
-        event,
-        user_id: userId,
-        ip_address: ip,
-        method,
-        path,
-        status_code: statusCode,
-        message,
-        meta
-      })
+  const { username, email, password } = req.body;
+  const ip = req.headers['x-real-ip'] || req.ip;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({
+      error: 'username, email, password required'
     });
-  } catch (_) {
-    // ถ้า log-service ล่ม ไม่ต้องหยุดการทำงาน
   }
-}
 
+  try {
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    // ตรวจสอบ email ซ้ำ
+    const existing = await pool.query(
+      'SELECT id FROM users WHERE email = $1',
+      [normalizedEmail]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(409).json({
+        error: 'Email already registered'
+      });
+    }
+
+    // hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users (username, email, password_hash, role)
+       VALUES ($1,$2,$3,'member')
+       RETURNING id, username, email, role`,
+      [username, normalizedEmail, passwordHash]
+    );
+
+    const user = result.rows[0];
+
+    res.status(201).json({
+      message: 'Register success',
+      user
+    });
+
+  } catch (err) {
+
+    console.error('[AUTH] Register error:', err.message);
+
+    res.status(500).json({
+      error: 'Server error'
+    });
+  }
+});
 
 // ─────────────────────────────────────────────
 // POST /api/auth/login
@@ -82,18 +102,6 @@ router.post('/login', async (req, res) => {
 
     if (!user || !isValid) {
 
-      await logEvent({
-        level: 'WARN',
-        event: 'LOGIN_FAILED',
-        userId: user?.id || null,
-        ip,
-        method: 'POST',
-        path: '/api/auth/login',
-        statusCode: 401,
-        message: `Login failed for: ${normalizedEmail}`,
-        meta: { email: normalizedEmail }
-      });
-
       return res.status(401).json({
         error: 'Email หรือ Password ไม่ถูกต้อง'
       });
@@ -112,21 +120,6 @@ router.post('/login', async (req, res) => {
       username: user.username
     });
 
-    await logEvent({
-      level: 'INFO',
-      event: 'LOGIN_SUCCESS',
-      userId: user.id,
-      ip,
-      method: 'POST',
-      path: '/api/auth/login',
-      statusCode: 200,
-      message: `User ${user.username} logged in`,
-      meta: {
-        username: user.username,
-        role: user.role
-      }
-    });
-
     res.json({
       message: 'Login สำเร็จ',
       token,
@@ -141,17 +134,6 @@ router.post('/login', async (req, res) => {
   } catch (err) {
 
     console.error('[AUTH] Login error:', err.message);
-
-    await logEvent({
-      level: 'ERROR',
-      event: 'LOGIN_ERROR',
-      ip,
-      method: 'POST',
-      path: '/api/auth/login',
-      statusCode: 500,
-      message: err.message,
-      meta: { email: normalizedEmail }
-    });
 
     res.status(500).json({ error: 'Server error' });
   }
