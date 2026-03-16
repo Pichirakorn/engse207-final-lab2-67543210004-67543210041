@@ -1104,99 +1104,339 @@
   <!-- Modals + Toast — copy จาก Week 12 -->
 
   <script>
-    /* ── STATE ── */
-    const API = "https://auth-service-production-0277.up.railway.app/";           // ใช้ relative URL (Nginx จัดการ)
-    let token = localStorage.getItem('jwt_token');
-    let currentUser = null;
-    let allTasks = [];
-    let currentFilter = 'ALL';
+let token       = localStorage.getItem('jwt_token') || null;
+let currentUser = null;
+let allTasks    = [];
+let currentFilter = 'ALL';
 
-    /* ── AUTH ── (ลบ doRegister() ออก) ── */
-    async function doLogin() {
-      const email = document.getElementById('login-email').value.trim();
-      const password = document.getElementById('login-password').value;
-      if (!email || !password) { showAuthMsg('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+/* ── TOAST ── */
+function toast(msg, type = 'info', duration = 3000) {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.getElementById('toast-container').prepend(t);
+  setTimeout(() => t.remove(), duration);
+}
 
-      const res = await fetch(`${API}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
+/* ── AUTH TABS ── */
+function switchTab(tab) {
+  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+  document.getElementById('auth-hint-login').classList.toggle('hidden', tab !== 'login');
+  document.querySelectorAll('.auth-tab').forEach((el, i) =>
+    el.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'))
+  );
+  document.getElementById('auth-msg').textContent = '';
+}
 
-      if (res.ok) {
-        token = data.token;
-        localStorage.setItem('jwt_token', token);
-        initApp(data.user);
-      } else {
-        showAuthMsg('❌ ' + (data.error || 'Login ล้มเหลว'), 'error');
-      }
-    }
+function showAuthMsg(msg, type) {
+  const el = document.getElementById('auth-msg');
+  el.className = `auth-msg ${type}`;
+  el.textContent = msg;
+}
 
-    function showAuthMsg(msg, type) {
-      const el = document.getElementById('auth-msg');
-      el.className = `auth-msg ${type}`;
-      el.textContent = msg;
-    }
+/* ── LOGIN ── */
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) { showAuthMsg('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
 
-    function doLogout() {
-      localStorage.removeItem('jwt_token');
-      token = null; currentUser = null; allTasks = [];
-      document.getElementById('app-page').classList.add('hidden');
-      document.getElementById('auth-page').classList.remove('hidden');
-    }
+  const btn = document.querySelector('#login-form .btn-primary');
+  btn.innerHTML = '<span class="spinner"></span> กำลังเข้าสู่ระบบ...';
+  btn.disabled  = true;
 
-    /* ── APP INIT ── */
-    async function initApp(user) {
-      currentUser = user;
-      document.getElementById('auth-page').classList.add('hidden');
-      document.getElementById('app-page').classList.remove('hidden');
-      const initials = (user.username || user.email || '?').charAt(0).toUpperCase();
-      document.getElementById('sidebar-avatar').textContent = initials;
-      document.getElementById('sidebar-name').textContent = user.username || user.email;
-      const rb = document.getElementById('sidebar-role-badge');
-      rb.textContent = user.role;
-      rb.className = `role-badge role-${user.role}`;
-      showPage('tasks');
-    }
-
-    /* ── NAVIGATION ── (ลบ users page ออก) ── */
-    function showPage(page) {
-      ['tasks', 'profile'].forEach(p => {
-        document.getElementById(`page-${p}`).classList.toggle('hidden', p !== page);
-        const btn = document.querySelector(`[data-page="${p}"]`);
-        if (btn) btn.classList.toggle('active', p === page);
-      });
-      if (page === 'tasks') loadTasks();
-      if (page === 'profile') loadProfile();
-    }
-
-    /* ── TASKS, PROFILE, JWT INSPECTOR ──
-       Copy ทั้งหมดจาก Week 12 app.js
-       (loadTasks, renderTasks, openCreateModal,
-        submitTask, confirmDelete, loadProfile,
-        renderJwtInspector, escHtml)
-    */
-
-    // ... (copy functions จาก Week 12) ...
-
-    /* ── AUTO-LOGIN ── */
-    if (token) {
-  (async () => {
-    const res = await fetch(`${API}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` }
+  try {
+    const res  = await fetch(`${CONFIG.AUTH_URL}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     });
+    const data = await res.json();
+    btn.textContent = 'เข้าสู่ระบบ'; btn.disabled = false;
 
     if (res.ok) {
-      const user = await res.json();
-      initApp(user);
+      token = data.token;
+      localStorage.setItem('jwt_token', token);
+      initApp(data.user);
     } else {
-      localStorage.removeItem('jwt_token');
-      token = null;
+      showAuthMsg('❌ ' + (data.error || 'Login ล้มเหลว'), 'error');
     }
-  })();
+  } catch (err) {
+    btn.textContent = 'เข้าสู่ระบบ'; btn.disabled = false;
+    showAuthMsg('❌ เชื่อมต่อไม่ได้: ' + err.message, 'error');
+  }
 }
-  </script>
+
+/* ── REGISTER ── */
+async function doRegister() {
+  const username = document.getElementById('reg-username').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  if (!username || !email || !password) { showAuthMsg('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+
+  const btn = document.querySelector('#register-form .btn-primary');
+  btn.innerHTML = '<span class="spinner"></span> กำลังสมัคร...';
+  btn.disabled  = true;
+
+  try {
+    const res  = await fetch(`${CONFIG.AUTH_URL}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password })
+    });
+    const data = await res.json();
+    btn.textContent = 'สมัครสมาชิก'; btn.disabled = false;
+
+    if (res.ok) {
+      token = data.token;
+      localStorage.setItem('jwt_token', token);
+      showAuthMsg(`✅ สมัครสำเร็จ ยินดีต้อนรับ ${data.user.username}!`, 'success');
+      setTimeout(() => initApp(data.user), 800);
+    } else {
+      showAuthMsg('❌ ' + (data.error || 'สมัครไม่สำเร็จ'), 'error');
+    }
+  } catch (err) {
+    btn.textContent = 'สมัครสมาชิก'; btn.disabled = false;
+    showAuthMsg('❌ เชื่อมต่อไม่ได้: ' + err.message, 'error');
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('jwt_token');
+  token = null; currentUser = null; allTasks = [];
+  document.getElementById('app-page').classList.add('hidden');
+  document.getElementById('auth-page').classList.remove('hidden');
+}
+
+/* ── APP INIT ── */
+function initApp(user) {
+  currentUser = user;
+  document.getElementById('auth-page').classList.add('hidden');
+  document.getElementById('app-page').classList.remove('hidden');
+
+  const initial = (user.username || user.email || '?')[0].toUpperCase();
+  document.getElementById('sidebar-avatar').textContent = initial;
+  document.getElementById('sidebar-name').textContent   = user.username || user.email;
+  const rb = document.getElementById('sidebar-role-badge');
+  rb.textContent = user.role;
+  rb.className   = `role-badge role-${user.role}`;
+
+  showPage('tasks');
+}
+
+/* ── NAVIGATION ── */
+function showPage(page) {
+  ['tasks','profile'].forEach(p => {
+    document.getElementById(`page-${p}`).classList.toggle('hidden', p !== page);
+    const btn = document.querySelector(`[data-page="${p}"]`);
+    if (btn) btn.classList.toggle('active', p === page);
+  });
+  if (page === 'tasks')   loadTasks();
+  if (page === 'profile') loadProfile();
+}
+
+/* ── TASKS ── */
+function authH() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }; }
+
+async function loadTasks() {
+  const res  = await fetch(`${CONFIG.TASK_URL}/api/tasks`, { headers: authH() });
+  const data = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) { toast('Session หมดอายุ', 'error'); doLogout(); }
+    return;
+  }
+  allTasks = data.tasks || [];
+  updateStats(); renderTasks();
+  document.getElementById('task-count').textContent = allTasks.length;
+}
+
+function updateStats() {
+  document.getElementById('st-total').textContent  = allTasks.length;
+  document.getElementById('st-todo').textContent   = allTasks.filter(t => t.status === 'TODO').length;
+  document.getElementById('st-inprog').textContent = allTasks.filter(t => t.status === 'IN_PROGRESS').length;
+  document.getElementById('st-done').textContent   = allTasks.filter(t => t.status === 'DONE').length;
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b =>
+    b.classList.toggle('active',
+      (f === 'ALL' && b.textContent === 'ทั้งหมด') ||
+      b.textContent.includes(f === 'IN_PROGRESS' ? 'In Progress' : f)
+    )
+  );
+  renderTasks();
+}
+
+function renderTasks() {
+  const tasks = currentFilter === 'ALL' ? allTasks : allTasks.filter(t => t.status === currentFilter);
+  const list  = document.getElementById('task-list');
+  if (!tasks.length) {
+    list.innerHTML = `<div class="empty-state"><div class="emoji">📭</div><p>ไม่มี Task ในหมวดนี้</p></div>`;
+    return;
+  }
+  const pIcon  = { low:'🟢', medium:'🟡', high:'🔴' };
+  const sChip  = {
+    TODO:        '<span class="chip chip-todo">⬜ TODO</span>',
+    IN_PROGRESS: '<span class="chip chip-inprogress">🔄 In Progress</span>',
+    DONE:        '<span class="chip chip-done">✅ Done</span>',
+  };
+  list.innerHTML = tasks.map(t => `
+    <div class="task-card status-${t.status}">
+      <div class="task-header">
+        <div class="title ${t.status==='DONE'?'done':''}">${esc(t.title)}</div>
+        <div class="task-actions">
+          <button class="btn-icon edit"   onclick="openEditModal(${t.id})" title="แก้ไข">✏️</button>
+          <button class="btn-icon delete" onclick="confirmDelete(${t.id})" title="ลบ">🗑️</button>
+        </div>
+      </div>
+      ${t.description ? `<div class="task-desc">${esc(t.description)}</div>` : ''}
+      <div class="task-meta">
+        ${sChip[t.status]||''}
+        <span class="chip chip-${t.priority}">${pIcon[t.priority]||'·'} ${t.priority}</span>
+        <select class="status-select" onchange="quickStatus(${t.id}, this.value)">
+          <option value="TODO"        ${t.status==='TODO'?'selected':''}>⬜ TODO</option>
+          <option value="IN_PROGRESS" ${t.status==='IN_PROGRESS'?'selected':''}>🔄 In Progress</option>
+          <option value="DONE"        ${t.status==='DONE'?'selected':''}>✅ Done</option>
+        </select>
+      </div>
+    </div>`).join('');
+}
+
+function openCreateModal() {
+  document.getElementById('modal-title').textContent   = '➕ สร้าง Task ใหม่';
+  document.getElementById('modal-task-id').value       = '';
+  document.getElementById('modal-task-title').value    = '';
+  document.getElementById('modal-task-desc').value     = '';
+  document.getElementById('modal-task-status').value   = 'TODO';
+  document.getElementById('modal-task-priority').value = 'medium';
+  document.getElementById('modal-submit-btn').textContent = '💾 สร้าง Task';
+  document.getElementById('task-modal').classList.remove('hidden');
+  document.getElementById('modal-task-title').focus();
+}
+
+function openEditModal(id) {
+  const t = allTasks.find(x => x.id === id); if (!t) return;
+  document.getElementById('modal-title').textContent   = '✏️ แก้ไข Task';
+  document.getElementById('modal-task-id').value       = t.id;
+  document.getElementById('modal-task-title').value    = t.title;
+  document.getElementById('modal-task-desc').value     = t.description || '';
+  document.getElementById('modal-task-status').value   = t.status;
+  document.getElementById('modal-task-priority').value = t.priority;
+  document.getElementById('modal-submit-btn').textContent = '💾 อัปเดต';
+  document.getElementById('task-modal').classList.remove('hidden');
+}
+
+function closeModal() { document.getElementById('task-modal').classList.add('hidden'); }
+
+async function submitTask() {
+  const id    = document.getElementById('modal-task-id').value;
+  const title = document.getElementById('modal-task-title').value.trim();
+  if (!title) { toast('กรุณาใส่ชื่อ Task', 'error'); return; }
+
+  const body = {
+    title,
+    description: document.getElementById('modal-task-desc').value,
+    status:      document.getElementById('modal-task-status').value,
+    priority:    document.getElementById('modal-task-priority').value,
+  };
+  const btn = document.getElementById('modal-submit-btn');
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+
+  const url = id ? `${CONFIG.TASK_URL}/api/tasks/${id}` : `${CONFIG.TASK_URL}/api/tasks`;
+  const res = await fetch(url, { method: id ? 'PUT' : 'POST', headers: authH(), body: JSON.stringify(body) });
+
+  btn.disabled = false;
+  btn.textContent = id ? '💾 อัปเดต' : '💾 สร้าง Task';
+
+  if (res.ok) {
+    toast(id ? '✅ อัปเดตแล้ว' : '✅ สร้าง Task แล้ว', 'success');
+    closeModal(); loadTasks();
+  } else {
+    const d = await res.json();
+    toast(res.status === 403 ? '🚫 Forbidden' : '❌ ' + (d.error||'Error'), 'error');
+  }
+}
+
+async function quickStatus(id, status) {
+  const res = await fetch(`${CONFIG.TASK_URL}/api/tasks/${id}`, {
+    method: 'PUT', headers: authH(), body: JSON.stringify({ status })
+  });
+  if (res.ok) { toast(`🔄 ${status}`, 'success', 2000); loadTasks(); }
+  else { const d = await res.json(); toast('❌ ' + (d.error||'Error'), 'error'); loadTasks(); }
+}
+
+let deleteId = null;
+function confirmDelete(id) {
+  deleteId = id;
+  document.getElementById('confirm-modal').classList.remove('hidden');
+  document.getElementById('confirm-delete-btn').onclick = async () => {
+    const res = await fetch(`${CONFIG.TASK_URL}/api/tasks/${deleteId}`, {
+      method: 'DELETE', headers: authH()
+    });
+    if (res.ok) { toast('🗑️ ลบแล้ว', 'info'); closeConfirm(); loadTasks(); }
+    else {
+      const d = await res.json();
+      toast(res.status === 403 ? '🚫 ลบ Task ของคนอื่นไม่ได้' : '❌ ' + (d.error||'Error'), 'error');
+      closeConfirm();
+    }
+  };
+}
+function closeConfirm() { document.getElementById('confirm-modal').classList.add('hidden'); deleteId = null; }
+
+/* ── PROFILE ── */
+async function loadProfile() {
+  const res  = await fetch(`${CONFIG.USER_URL}/api/users/me`, { headers: authH() });
+  const data = await res.json();
+  const p    = data.profile || {};
+  const u    = p.user_id ? p : currentUser;
+
+  const initial = (u.username || u.email || '?')[0].toUpperCase();
+  document.getElementById('prof-avatar').textContent  = initial;
+  document.getElementById('prof-name').textContent    = u.username || u.email || '—';
+  document.getElementById('prof-email').textContent   = u.email || '—';
+  document.getElementById('prof-id').textContent      = u.user_id || u.id || '—';
+  document.getElementById('prof-role').textContent    = u.role || '—';
+  document.getElementById('prof-display').textContent = p.display_name || '—';
+  const rb = document.getElementById('prof-role-badge');
+  rb.textContent = u.role; rb.className = `role-badge role-${u.role}`;
+
+  renderJwt();
+}
+
+function renderJwt() {
+  if (!token) return;
+  const parts = token.split('.');
+  if (parts.length !== 3) return;
+  document.getElementById('jwt-parts').innerHTML = `
+    <span class="jwt-part jwt-header-part"  title="Header">${parts[0]}</span>
+    <span style="color:var(--muted)">.</span>
+    <span class="jwt-part jwt-payload-part" title="Payload">${parts[1]}</span>
+    <span style="color:var(--muted)">.</span>
+    <span class="jwt-part jwt-sig-part"     title="Signature">${parts[2]}</span>`;
+  try {
+    const pl  = JSON.parse(atob(parts[1]));
+    const exp = new Date(pl.exp * 1000);
+    const left = Math.round((exp - Date.now()) / 60000);
+    document.getElementById('jwt-decoded').innerHTML =
+      `<p style="font-size:.78rem;color:var(--muted);margin-bottom:.4rem">🟣 Payload (decoded):</p>
+       <pre>${JSON.stringify(pl, null, 2)}</pre>`;
+    document.getElementById('token-exp').innerHTML = left < 0
+      ? `<span class="exp-bad">⚠️ Token หมดอายุแล้ว!</span>`
+      : `<span class="exp-ok">✅ ใช้ได้อีก ${left} นาที (${exp.toLocaleTimeString('th-TH')})</span>`;
+  } catch(e) {}
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+document.getElementById('task-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.getElementById('confirm-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeConfirm(); });
+
+/* ── AUTO-LOGIN ── */
+if (token) {
+  fetch(`${CONFIG.AUTH_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+    .then(r => r.json()).then(d => { if (d.user) initApp(d.user); else { localStorage.removeItem('jwt_token'); token = null; } })
+    .catch(() => { localStorage.removeItem('jwt_token'); token = null; });
+}
+</script>
 </body>
 
 </html>
