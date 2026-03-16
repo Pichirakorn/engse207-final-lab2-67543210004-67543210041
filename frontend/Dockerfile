@@ -1,7 +1,8 @@
 FROM nginx:alpine
 
-COPY index.html /usr/share/nginx/html/index.html
-COPY config.js /usr/share/nginx/html/config.js
-COPY profiles.json /usr/share/nginx/html/profiles.json
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY index.html /usr/share/nginx/html/
+COPY profile.html /usr/share/nginx/html/
+COPY config.js /usr/share/nginx/html/
 
-EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
