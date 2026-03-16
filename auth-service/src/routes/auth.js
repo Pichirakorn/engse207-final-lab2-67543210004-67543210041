@@ -11,6 +11,18 @@ const router = express.Router();
 const DUMMY_BCRYPT_HASH =
   '$2b$10$CwTycUXWue0Thq9StjUM0uJ8y0R6VQwWi4KFOeFHrgb3R04QLbL7a';
 
+  // ─────────────────────────────────────────────
+// GET /api/auth/health
+// ─────────────────────────────────────────────
+router.get('/health', (_, res) => {
+
+  res.json({
+    status: 'ok',
+    service: 'auth-service',
+    time: new Date()
+  });
+});
+
 // ─────────────────────────────────────────────
 // POST /api/auth/register
 // สมัครสมาชิกใหม่
@@ -215,17 +227,7 @@ router.get('/me', async (req, res) => {
 });
 
 
-// ─────────────────────────────────────────────
-// GET /api/auth/health
-// ─────────────────────────────────────────────
-router.get('/health', (_, res) => {
 
-  res.json({
-    status: 'ok',
-    service: 'auth-service',
-    time: new Date()
-  });
-});
 
 
 module.exports = router;
