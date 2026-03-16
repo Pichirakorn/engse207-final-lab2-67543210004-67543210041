@@ -1177,75 +1177,24 @@
         renderJwtInspector, escHtml)
     */
 
-    /* ── TASKS ── */
-
-    async function loadTasks() {
-      const res = await fetch("http://localhost:3002/api/tasks", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) return;
-
-      const tasks = await res.json();
-      allTasks = tasks;
-      renderTasks();
-    }
-
-    function renderTasks() {
-      const list = document.getElementById("task-list");
-      if (!list) return;
-
-      list.innerHTML = "";
-
-      allTasks.forEach(task => {
-        const li = document.createElement("li");
-        li.textContent = task.title + " (" + task.status + ")";
-        list.appendChild(li);
-      });
-    }
-
-    /* ── PROFILE ── */
-
-    async function loadProfile() {
-      const res = await fetch("http://localhost:3003/api/users/me", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) return;
-
-      const profile = await res.json();
-
-      const nameEl = document.getElementById("profile-name");
-      const bioEl = document.getElementById("profile-bio");
-
-      if (nameEl) nameEl.value = profile?.display_name || "";
-      if (bioEl) bioEl.value = profile?.bio || "";
-    }
-
-    /* ── UTIL ── */
-
-    function escHtml(text) {
-      const div = document.createElement("div");
-      div.innerText = text;
-      return div.innerHTML;
-    }
+    // ... (copy functions จาก Week 12) ...
 
     /* ── AUTO-LOGIN ── */
     if (token) {
-      (async () => {
-        const res = await fetch(`${API}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+  (async () => {
+    const res = await fetch(`${API}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
-        if (res.ok) {
-          const user = await res.json();
-          initApp(user);
-        } else {
-          localStorage.removeItem('jwt_token');
-          token = null;
-        }
-      })();
+    if (res.ok) {
+      const user = await res.json();
+      initApp(user);
+    } else {
+      localStorage.removeItem('jwt_token');
+      token = null;
     }
+  })();
+}
   </script>
 </body>
 

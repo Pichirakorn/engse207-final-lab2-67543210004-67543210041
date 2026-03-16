@@ -14,7 +14,18 @@ app.use(morgan('combined', {
   stream: { write: (msg) => console.log(msg.trim()) }
 }));
 
+// ✅ PUBLIC HEALTH ROUTE
+app.get('/api/tasks/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'task-service',
+    time: new Date()
+  });
+});
+
+// protected routes
 app.use('/api/tasks', taskRoutes);
+
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 
 async function start() {
