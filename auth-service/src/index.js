@@ -51,6 +51,10 @@ async function start() {
     }
   }
 
+  app.get('/', (req, res) => {
+  res.json({ status: 'ok' });
+});
+  
   app.listen(PORT, '0.0.0.0',() => {
     console.log(`[auth-service] Running on port ${PORT}`);
     console.log(`[auth-service] JWT_EXPIRES: ${process.env.JWT_EXPIRES || '1h'}`);
