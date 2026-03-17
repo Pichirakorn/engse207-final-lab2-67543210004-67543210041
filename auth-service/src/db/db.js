@@ -1,16 +1,18 @@
 const { Pool } = require('pg');
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-// Auto-create tables on startup
 async function initDB() {
   const sql = fs.readFileSync(
-    path.join(__dirname, 'init.sql'), 'utf8'
+    path.join(__dirname, 'init.sql'),
+    'utf8'
   );
   await pool.query(sql);
   console.log('[auth-db] Tables initialized');
