@@ -1431,7 +1431,9 @@
         if (res.status === 401) { toast('Session หมดอายุ', 'error'); doLogout(); }
         return;
       }
-      allTasks = data.tasks || [];
+      allTasks = Array.isArray(data)
+        ? data
+        : data.tasks || data.data || [];
       updateStats(); renderTasks();
       document.getElementById('task-count').textContent = allTasks.length;
     }
