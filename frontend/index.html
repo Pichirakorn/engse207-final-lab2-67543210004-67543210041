@@ -1148,7 +1148,7 @@
       btn.disabled = true;
 
       try {
-        const res = await fetch(`${CONFIG.AUTH_URL}/api/auth/login`, {
+        const res = await fetch(`${CONFIG.AUTH_API}/auth/login`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
@@ -1180,7 +1180,7 @@
       btn.disabled = true;
 
       try {
-        const res = await fetch(`${CONFIG.AUTH_URL}/api/auth/register`, {
+        const res = await fetch(`${CONFIG.AUTH_API}/auth/register`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, email, password })
         });
@@ -1239,7 +1239,7 @@
     function authH() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }; }
 
     async function loadTasks() {
-      const res = await fetch(`${CONFIG.TASK_URL}/api/tasks`, { headers: authH() });
+      const res = await fetch(`${CONFIG.TASK_API}/tasks`, { headers: authH() });
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 401) { toast('Session หมดอายุ', 'error'); doLogout(); }
@@ -1343,7 +1343,7 @@
       const btn = document.getElementById('modal-submit-btn');
       btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
 
-      const url = id ? `${CONFIG.TASK_URL}/api/tasks/${id}` : `${CONFIG.TASK_URL}/api/tasks`;
+      const url = id ? `${CONFIG.TASK_API}/tasks/${id}` : `${CONFIG.TASK_API}/tasks`;
       const res = await fetch(url, { method: id ? 'PUT' : 'POST', headers: authH(), body: JSON.stringify(body) });
 
       btn.disabled = false;
@@ -1359,7 +1359,7 @@
     }
 
     async function quickStatus(id, status) {
-      const res = await fetch(`${CONFIG.TASK_URL}/api/tasks/${id}`, {
+      const res = await fetch(`${CONFIG.TASK_API}/tasks/${id}`, {
         method: 'PUT', headers: authH(), body: JSON.stringify({ status })
       });
       if (res.ok) { toast(`🔄 ${status}`, 'success', 2000); loadTasks(); }
@@ -1371,7 +1371,7 @@
       deleteId = id;
       document.getElementById('confirm-modal').classList.remove('hidden');
       document.getElementById('confirm-delete-btn').onclick = async () => {
-        const res = await fetch(`${CONFIG.TASK_URL}/api/tasks/${deleteId}`, {
+        const res = await fetch(`${CONFIG.TASK_API}/tasks/${deleteId}`, {
           method: 'DELETE', headers: authH()
         });
         if (res.ok) { toast('🗑️ ลบแล้ว', 'info'); closeConfirm(); loadTasks(); }
@@ -1386,7 +1386,7 @@
 
     /* ── PROFILE ── */
     async function loadProfile() {
-      const res = await fetch(`${CONFIG.USER_URL}/api/users/me`, { headers: authH() });
+      const res = await fetch(`${CONFIG.USER_API}/users/me`, { headers: authH() });
       const data = await res.json();
       const p = data.profile || {};
       const u = p.user_id ? p : currentUser;
@@ -1434,7 +1434,7 @@
 
     /* ── AUTO-LOGIN ── */
     if (token) {
-      fetch(`${CONFIG.AUTH_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`${CONFIG.AUTH_API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => { if (d.user) initApp(d.user); else { localStorage.removeItem('jwt_token'); token = null; } })
         .catch(() => { localStorage.removeItem('jwt_token'); token = null; });
     }
