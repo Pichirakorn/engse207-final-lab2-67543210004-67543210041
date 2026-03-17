@@ -236,7 +236,7 @@ curl -X POST https://task-service-production.up.railway.app/api/tasks
 -H "Content-Type: application/json"
 -d '{"title":"Finish assignment"}'
 
-# Known Limitations
+# 10. Known Limitations
 
 - ไม่มี Foreign Key ข้าม database
 - ใช้ user_id เป็น logical reference
