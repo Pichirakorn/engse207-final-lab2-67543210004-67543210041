@@ -12,6 +12,10 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
+ app.get('/', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 app.use('/api/users', userRoutes);
 
 const PORT = process.env.PORT || 3003;
