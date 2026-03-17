@@ -10,12 +10,17 @@ const pool = new Pool({
 });
 
 async function initDB() {
-  const sql = fs.readFileSync(
-    path.join(__dirname, 'init.sql'),
-    'utf8'
-  );
-  await pool.query(sql);
-  console.log('[auth-db] Tables initialized');
+  try {
+    const filePath = path.join(__dirname, 'init.sql');
+    console.log("📂 SQL path:", filePath);
+
+    const sql = fs.readFileSync(filePath, 'utf8');
+    await pool.query(sql);
+
+    console.log('✅ [auth-db] Tables initialized');
+  } catch (err) {
+    console.error('❌ [auth-db] Init error:', err.message);
+  }
 }
 
 module.exports = { pool, initDB };
