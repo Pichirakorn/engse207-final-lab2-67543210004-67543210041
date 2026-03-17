@@ -22,6 +22,10 @@ app.use(morgan(':method :url :status :response-time ms - body::body-size', {
   }
 }));
 
+ app.get('/', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // ── Routes ──
 app.use('/api/auth', authRoutes);
 
@@ -50,10 +54,6 @@ async function start() {
       await new Promise(r => setTimeout(r, 3000));
     }
   }
-
-  app.get('/', (req, res) => {
-  res.json({ status: 'ok' });
-});
   
   app.listen(PORT, '0.0.0.0',() => {
     console.log(`[auth-service] Running on port ${PORT}`);
