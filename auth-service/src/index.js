@@ -12,49 +12,40 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Morgan: log ทุก request ในรูปแบบที่ Loki อ่านได้
 morgan.token('body-size', (req) => {
   return req.body ? JSON.stringify(req.body).length + 'b' : '0b';
 });
 app.use(morgan(':method :url :status :response-time ms - body::body-size', {
   stream: {
-    write: (msg) => console.log(msg.trim())  // stdout → Docker log driver
+    write: (msg) => console.log(msg.trim())
   }
 }));
 
 // ── Routes ──
 app.use('/api/auth', authRoutes);
 
-// 404 handler
+// health check (สำคัญมาก)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// 404
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found', path: req.path });
 });
 
-// Error handler
+// error handler
 app.use((err, req, res, _next) => {
   console.error('[ERROR]', err.message);
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-// ── Start ──
-async function start() {
-  // รอ DB พร้อม
-  let retries = 10;
-  while (retries > 0) {
-    try {
-      await initDB();
-      break;
-    } catch (err) {
-      console.log(`[auth-service] Waiting for DB... (${retries} retries left)`);
-      retries--;
-      await new Promise(r => setTimeout(r, 3000));
-    }
-  }
+// ── Start server ก่อน ──
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[auth-service] Running on port ${PORT}`);
 
-  app.listen(PORT, '0.0.0.0',() => {
-    console.log(`[auth-service] Running on port ${PORT}`);
-    console.log(`[auth-service] JWT_EXPIRES: ${process.env.JWT_EXPIRES || '1h'}`);
-  });
-}
-
-start();
+  // 🔥 init DB แบบ background (ไม่ block)
+  initDB()
+    .then(() => console.log('[auth-service] DB ready'))
+    .catch(err => console.error('[auth-service] DB error:', err.message));
+});
