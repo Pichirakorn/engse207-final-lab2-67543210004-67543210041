@@ -1093,11 +1093,134 @@
     </nav>
 
     <div class="main-content">
-      <!-- TASKS PAGE — copy จาก Week 12 ทั้งหมด -->
-      <div id="page-tasks"> <!-- ... เหมือน Week 12 ... --> </div>
+      <!-- ── TASKS PAGE ── -->
+      <div id="page-tasks">
+        <div class="page-header">
+          <div class="page-title">✅ Tasks</div>
+          <button class="btn-add" onclick="openCreateModal()">＋ สร้าง Task ใหม่</button>
+        </div>
+        <div class="page-body">
+          <!-- Stats -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📋</div>
+              <div>
+                <div class="stat-value" id="st-total">—</div>
+                <div class="stat-label">ทั้งหมด</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color:#64748b">⬜</div>
+              <div>
+                <div class="stat-value" id="st-todo">—</div>
+                <div class="stat-label">TODO</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color:#f59e0b">🔄</div>
+              <div>
+                <div class="stat-value" id="st-inprog">—</div>
+                <div class="stat-label">In Progress</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color:#22c55e">✅</div>
+              <div>
+                <div class="stat-value" id="st-done">—</div>
+                <div class="stat-label">Done</div>
+              </div>
+            </div>
+          </div>
+          <!-- Filter toolbar -->
+          <div class="toolbar">
+            <button class="filter-btn active" onclick="setFilter('ALL')">ทั้งหมด</button>
+            <button class="filter-btn" onclick="setFilter('TODO')">TODO</button>
+            <button class="filter-btn" onclick="setFilter('IN_PROGRESS')">In Progress</button>
+            <button class="filter-btn" onclick="setFilter('DONE')">Done</button>
+            <div class="spacer"></div>
+            <button class="filter-btn" onclick="loadTasks()" title="Refresh">🔄 Refresh</button>
+          </div>
+          <!-- Task list -->
+          <div class="task-list" id="task-list">
+            <div class="empty-state">
+              <div class="spinner"></div>
+              <p style="margin-top:1rem">กำลังโหลด...</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <!-- PROFILE PAGE — copy จาก Week 12 ทั้งหมด -->
-      <div id="page-profile" class="hidden"> <!-- ... เหมือน Week 12 ... --> </div>
+      <!-- ── USERS PAGE ── -->
+      <div id="page-users" class="hidden">
+        <div class="page-header">
+          <div class="page-title">👥 Users</div>
+        </div>
+        <div class="page-body">
+          <div id="users-admin-only" class="hidden">
+            <div class="user-table">
+              <div class="user-row header">
+                <div>ผู้ใช้</div>
+                <div>Email</div>
+                <div>Role</div>
+                <div>สมัครเมื่อ</div>
+              </div>
+              <div id="user-rows"></div>
+            </div>
+          </div>
+          <div id="users-forbidden" class="empty-state hidden">
+            <div class="emoji">🚫</div>
+            <p style="font-size:1.1rem;color:var(--text);font-weight:600">403 Forbidden</p>
+            <p>เฉพาะ <strong>admin</strong> เท่านั้นที่ดูรายชื่อผู้ใช้ทั้งหมดได้</p>
+            <p style="margin-top:.5rem;font-size:.85rem">API ตอบกลับ: <code
+                style="background:var(--surface);padding:2px 6px;border-radius:4px">{"error":"Forbidden"}</code></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PROFILE PAGE ── -->
+      <div id="page-profile" class="hidden">
+        <div class="page-header">
+          <div class="page-title">👤 Profile & JWT</div>
+        </div>
+        <div class="page-body">
+          <div class="profile-card">
+            <div class="profile-header">
+              <div class="profile-avatar" id="prof-avatar">?</div>
+              <div class="profile-info">
+                <h2 id="prof-name">—</h2>
+                <p id="prof-email">—</p>
+                <span class="role-badge" id="prof-role-badge" style="margin-top:4px;display:inline-block">—</span>
+              </div>
+            </div>
+            <div class="info-grid">
+              <div class="info-item"><label>User ID</label>
+                <p id="prof-id">—</p>
+              </div>
+              <div class="info-item"><label>Role</label>
+                <p id="prof-role">—</p>
+              </div>
+              <div class="info-item"><label>สมัครเมื่อ</label>
+                <p id="prof-created">—</p>
+              </div>
+              <div class="info-item"><label>API Endpoint</label>
+                <p style="font-size:.8rem;color:var(--muted)">GET /api/users/me</p>
+              </div>
+            </div>
+
+            <!-- JWT Inspector -->
+            <div class="jwt-panel">
+              <h3>🔍 JWT Token Inspector (เพื่อการเรียนรู้)</h3>
+              <div class="jwt-parts" id="jwt-parts"></div>
+              <div class="jwt-decoded" id="jwt-decoded"></div>
+              <div class="token-exp" id="token-exp"></div>
+            </div>
+
+            <a href="logs.html" target="_blank" class="logs-link">
+              📊 ไปดู Log Dashboard →
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
